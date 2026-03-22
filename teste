@@ -1,0 +1,266 @@
+--// LOAD UI
+local WindUI = loadstring(game:HttpGet("https://github.com/Footagesus/WindUI/releases/latest/download/main.lua"))()
+
+local Window = WindUI:CreateWindow({
+    Title = "HironDrigon Team",
+    Icon = "home",
+    Author = "by medr0so_0",
+    Folder = "MySuperHub",
+    Size = UDim2.fromOffset(580, 460),
+    MinSize = Vector2.new(560, 350),
+    MaxSize = Vector2.new(850, 560),
+    Transparent = true,
+    Theme = "Dark",
+    Resizable = true,
+    SideBarWidth = 200,
+    BackgroundImageTransparency = 0.42,
+    HideSearchBar = true,
+    ScrollBarEnabled = false,
+    User = {
+        Enabled = true,
+        Anonymous = false,
+        Callback = function()
+            print("User clicked!")
+        end,
+    },
+})
+
+--// SERVIÇOS
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+
+--// SISTEMAS
+local jails = {}
+local loopKill = {}
+local loopExplode = {}
+local flingLoop = {}
+
+--// GET PLAYER
+local function getPlayer(name)
+    for _,plr in pairs(Players:GetPlayers()) do
+        if plr.Name:lower():sub(1,#name) == name:lower() then
+            return plr
+        end
+    end
+end
+
+--// COMANDOS
+
+local function kill(plr)
+    if plr.Character and plr.Character:FindFirstChild("Humanoid") then
+        plr.Character.Humanoid.Health = 0
+    end
+end
+
+-- JAIL IGUAL AO ADMIN (COM BOX COMPLETA)
+local function jail(plr)
+    if plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
+        local center = plr.Character.HumanoidRootPart.Position
+
+        local cage = Instance.new("Model")
+
+        local function wall(size, pos)
+            local p = Instance.new("Part")
+            p.Size = size
+            p.Position = pos
+            p.Anchored = true
+            p.CanCollide = true
+            p.Transparency = 0.3
+            p.Parent = cage
+
+            p.Touched:Connect(function(hit)
+                if hit.Parent == plr.Character then
+                    plr.Character.HumanoidRootPart.CFrame = CFrame.new(center)
+                end
+            end)
+        end
+
+        local s = 10
+        wall(Vector3.new(s,1,s), center - Vector3.new(0,5,0))
+        wall(Vector3.new(s,1,s), center + Vector3.new(0,5,0))
+        wall(Vector3.new(1,s,s), center + Vector3.new(5,0,0))
+        wall(Vector3.new(1,s,s), center - Vector3.new(5,0,0))
+        wall(Vector3.new(s,s,1), center + Vector3.new(0,0,5))
+        wall(Vector3.new(s,s,1), center - Vector3.new(0,0,5))
+
+        cage.Parent = workspace
+        jails[plr] = cage
+    end
+end
+
+-- UNJAIL FIX
+local function unjail(plr)
+    if jails[plr] then
+        jails[plr]:Destroy()
+        jails[plr] = nil
+    end
+
+    if plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
+        plr.Character.HumanoidRootPart.CFrame += Vector3.new(0,5,0)
+    end
+end
+
+local function freeze(plr)
+    if plr.Character then
+        for _,v in pairs(plr.Character:GetDescendants()) do
+            if v:IsA("BasePart") then v.Anchored = true end
+        end
+    end
+end
+
+local function unfreeze(plr)
+    if plr.Character then
+        for _,v in pairs(plr.Character:GetDescendants()) do
+            if v:IsA("BasePart") then v.Anchored = false end
+        end
+    end
+end
+
+local function explode(plr)
+    if plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
+        local ex = Instance.new("Explosion")
+        ex.Position = plr.Character.HumanoidRootPart.Position
+        ex.Parent = workspace
+    end
+end
+
+-- FLING COM TEMPO
+local function fling(plr)
+    flingLoop[plr] = true
+
+    local function apply(char)
+        task.spawn(function()
+            local t = tick()
+            while flingLoop[plr] and (tick() - t < 4) do
+                if char and char:FindFirstChild("HumanoidRootPart") then
+                    char.HumanoidRootPart.Velocity = Vector3.new(0,1000000000,0)
+                end
+                task.wait()
+            end
+            flingLoop[plr] = false
+        end)
+    end
+
+    if plr.Character then apply(plr.Character) end
+
+    plr.CharacterAdded:Connect(function(char)
+        if flingLoop[plr] then
+            task.wait(0.2)
+            apply(char)
+        end
+    end)
+end
+
+local function unfling(plr)
+    flingLoop[plr] = false
+end
+
+-- BRING
+local function bring(plr)
+    if plr.Character and LocalPlayer.Character then
+        local t = plr.Character:FindFirstChild("HumanoidRootPart")
+        local me = LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+        if t and me then
+            t.CFrame = me.CFrame + Vector3.new(0,0,-3)
+        end
+    end
+end
+
+--// EXECUTOR
+local function execute(cmd, targetName, arg)
+    local plr = getPlayer(targetName)
+    if not plr then return end
+
+    if cmd=="kill" then kill(plr) end
+    if cmd=="jail" then jail(plr) end
+    if cmd=="unjail" then unjail(plr) end
+    if cmd=="freeze" then freeze(plr) end
+    if cmd=="unfreeze" then unfreeze(plr) end
+    if cmd=="explode" then explode(plr) end
+    if cmd=="bring" then bring(plr) end
+
+    if cmd=="loopkill" then
+        loopKill[plr]=true
+        task.spawn(function()
+            while loopKill[plr] do
+                kill(plr)
+                task.wait(0.5)
+            end
+        end)
+    end
+
+    if cmd=="unloopkill" then loopKill[plr]=false end
+
+    if cmd=="loopexplode" then
+        loopExplode[plr]=true
+        task.spawn(function()
+            while loopExplode[plr] do
+                explode(plr)
+                task.wait(0.5)
+            end
+        end)
+    end
+
+    if cmd=="unloopexplode" then loopExplode[plr]=false end
+
+    if cmd=="fling" then fling(plr) end
+    if cmd=="unfling" then unfling(plr) end
+
+    if cmd=="kick" and plr==LocalPlayer then
+        LocalPlayer:Kick(arg or "Kicked")
+    end
+end
+
+--// CHAT SYNC
+local function hookPlayer(plr)
+    plr.Chatted:Connect(function(msg)
+        if msg:sub(1,1) ~= ";" then return end
+
+        local args = msg:split(" ")
+        local cmd = args[1]:sub(2):lower()
+        local target = args[2]
+        local arg = table.concat(args," ",3)
+
+        execute(cmd, target, arg)
+    end)
+end
+
+for _,plr in pairs(Players:GetPlayers()) do
+    hookPlayer(plr)
+end
+
+Players.PlayerAdded:Connect(hookPlayer)
+
+--// UI ORIGINAL
+
+local MainTab = Window:Tab({ 
+    Title = "Principal", 
+    Icon = "home" 
+})
+
+MainTab:Button({
+    Title = "HironDrigon Natural Disaster",
+    Callback = function()
+        loadstring(game:HttpGet("https://raw.githubusercontent.com/losaztecas859-commits/HironDrigonHub-Medr0so_0Owner-NaturalDisaster-Arthurfelipe_blox2Moderator/main/HironDrigonHub.OwnerMedroso_0.ModeratorAndTesterArthurfelipe_blox2"))()
+    end
+})
+
+MainTab:Button({
+    Title = "HironDrigon Brookhaven",
+    Callback = function()
+        loadstring(game:HttpGet("https://raw.githubusercontent.com/nombrehumilde-cyber/HironDrigon/refs/heads/main/HironDrigon1"))()
+    end
+})
+
+MainTab:Button({
+    Title = "Rejoin",
+    Callback = function()
+        game:GetService("TeleportService"):Teleport(game.PlaceId, game.Players.LocalPlayer)
+    end
+})
+
+WindUI:Notify({
+    Title = "Sincronizado 😈",
+    Content = "Agora esse hub responde a TODOS comandos",
+    Duration = 6
+})
