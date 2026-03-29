@@ -1,0 +1,6 @@
+----------///// PERMANENTE ACESS /////------------
+["medr0so_0"]           = true,
+["K666pkildd"]           = true
+}
+
+return allowedUsers
